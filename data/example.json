@@ -1,0 +1,30 @@
+{
+    "cpu": {
+      "cpu_count": 12,
+      "cpu_freq": [4401, 0, 4401],
+      "cpu_temp": [59.3750076293945, 53.6250038146973, 31.8750019073486, 53.6250038146973, 42.7500038146973, 58.610595703125, 36.3452377319336, 28.9761905670166, 27.1666679382324],
+      "usage_percent": 11.2
+    },
+    "disk": {
+      "free_gb": 591.61,
+      "total_gb": 1087.94,
+      "usage_percent": 45.6,
+      "used_gb": 496.33
+    },
+    "gpu": [
+      {
+        "index": 0,
+        "memory_total_MB": 12282,
+        "memory_used_MB": 1329,
+        "name": "NVIDIA GeForce RTX 4070 SUPER",
+        "temperature_C": 25,
+        "utilization_percent": 2
+      }
+    ],
+    "memory": {
+      "free_gb": 46.93,
+      "total_gb": 63.11,
+      "usage_percent": 25.6,
+      "used_gb": 16.18
+    }
+  }
