@@ -5,8 +5,6 @@ import WinTmp
 from pynvml import *
 import json
 import os
-import platform
-import clr
 
 app = Flask(__name__)
 
@@ -47,8 +45,6 @@ def get_stats():
     except Exception as e:
         print(f"Error using gpustat: {e}")
 
-    win_data = getWindowsData()
-
     stats = {
         "cpu": {
             "usage_percent": cpu,
@@ -70,35 +66,8 @@ def get_stats():
             "usage_percent": disk.percent
         },
         "gpu": gpu_data,
-        "win_data": win_data,
-        # "fps": None  # Placeholder if you want to add RTSS/MSI Afterburner
     }
     return jsonify(stats)
-
-def getWindowsData():
-    clr.AddReference( os.path.abspath( os.path.dirname( __file__ ) ) + R'\OpenHardwareMonitorLib.dll' )
-    from OpenHardwareMonitor import Hardware
-    hw = Hardware.Computer()
-    hw.MainboardEnabled, hw.CPUEnabled, hw.RAMEnabled, hw.GPUEnabled, hw.HDDEnabled = True, True, True, True, True
-    hw.Open()     
-    out = []
-    for i in hw.Hardware :
-        i.Update()
-        for sensor in i.Sensors : 
-            thing = parse_sensor( sensor )
-            if thing is not None :
-                out.append( thing )
-            for  j in i.SubHardware :
-                j.Update()
-                for subsensor in j.Sensors :
-                    thing = parse_sensor( subsensor )
-                    out.append( thing )
-    return out
-
-def parse_sensor( snsr ) :
-    if snsr.Value is not None and snsr.SensorType == OHM_sensortypes.index( 'Temperature' ) :
-        HwType = OHM_hwtypes[ snsr.Hardware.HardwareType ]
-        return { "Type" : HwType, "Name" : snsr.Hardware.Name, "Sensor" : snsr.Name, "Reading" : u'%s' % snsr.Value }
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
