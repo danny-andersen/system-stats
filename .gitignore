@@ -14,7 +14,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -172,3 +171,53 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+stats_display/migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+stats_display/.dart_tool/
+stats_display/.flutter-plugins
+stats_display/.flutter-plugins-dependencies
+stats_display/.pub-cache/
+stats_display/.pub/
+stats_display/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+stats_display/android/app/debug
+stats_display/android/app/profile
+stats_display/android/app/release
+stats_display/ios/Runner
+stats_display/windows/runner
+
