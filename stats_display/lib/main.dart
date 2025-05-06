@@ -1,83 +1,12 @@
-import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
+
 import 'package:stats_display/detailed_screen.dart';
+import 'package:stats_display/providers.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(ProviderScope(child: SystemMonitorApp()));
-}
-
-final systemListProvider = FutureProvider<List<(String, String)>>((ref) async {
-  final jsonString = await rootBundle.loadString('assets/systems.json');
-  final List<dynamic> data = json.decode(jsonString);
-  final List<String> systemList = data.cast<String>();
-  List<(String, String)> systems = [];
-  for (String system in systemList) {
-    List<String> entry = system.split(',');
-    final systemName = entry[0].trim();
-    final systemUrl = entry[1].trim();
-    systems.add((systemName, systemUrl));
-  }
-  return systems;
-});
-
-// final systemListProvider = Provider<List<(String, String)>>(
-//   (ref) => [
-//     ('gaming-pc-ubuntu', 'http://192.168.1.232:5000/stats'),
-//     ('system-1', 'http://system1.local/status'),
-//     ('system-2', 'http://system2.local/status'),
-//   ],
-// );
-
-final selectedSystemProvider = StateProvider<(String, String)?>((ref) => null);
-
-final systemInfoNotifierProvider = StateNotifierProvider.autoDispose.family<
-  SystemInfoNotifier,
-  AsyncValue<Map<String, dynamic>>,
-  (String, String)
->((ref, system) {
-  return SystemInfoNotifier(system);
-});
-
-class SystemInfoNotifier
-    extends StateNotifier<AsyncValue<Map<String, dynamic>>> {
-  final (String, String) system;
-  bool disposed = false;
-  Timer? _timer;
-
-  SystemInfoNotifier(this.system) : super(AsyncLoading()) {
-    _fetchData();
-    _timer = Timer.periodic(Duration(seconds: 5), (_) => _fetchData());
-  }
-
-  Future<void> _fetchData() async {
-    try {
-      final response = await http.get(Uri.parse(system.$2));
-      if (!disposed) {
-        //Widget may have been disposed whilst waiting for a response
-        if (response.statusCode == 200) {
-          state = AsyncData(json.decode(response.body));
-        } else {
-          state = AsyncError('Failed to load system data', StackTrace.current);
-        }
-      }
-    } catch (e) {
-      if (!disposed) {
-        state = AsyncError(e, StackTrace.current);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    disposed = true;
-    _timer?.cancel();
-    super.dispose();
-  }
 }
 
 class SystemMonitorApp extends ConsumerWidget {

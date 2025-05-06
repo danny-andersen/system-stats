@@ -1,54 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
-import 'dart:async';
-import 'dart:convert';
 
-final systemDetailNotifierProvider = StateNotifierProvider.autoDispose
-    .family<SystemDetailNotifier, AsyncValue<Map<String, dynamic>>, String>((
-      ref,
-      systemUrl,
-    ) {
-      return SystemDetailNotifier(systemUrl);
-    });
-
-class SystemDetailNotifier
-    extends StateNotifier<AsyncValue<Map<String, dynamic>>> {
-  final String systemUrl;
-  bool disposed = false;
-  Timer? _timer;
-
-  SystemDetailNotifier(this.systemUrl) : super(AsyncLoading()) {
-    _fetchData();
-    _timer = Timer.periodic(Duration(seconds: 5), (_) => _fetchData());
-  }
-
-  Future<void> _fetchData() async {
-    try {
-      final response = await http.get(Uri.parse(systemUrl));
-      if (!disposed) {
-        //Widget may have been disposed whilst waiting for a response
-        if (response.statusCode == 200) {
-          state = AsyncData(json.decode(response.body));
-        } else {
-          state = AsyncError('Failed to load system data', StackTrace.current);
-        }
-      }
-    } catch (e) {
-      if (!disposed) {
-        state = AsyncError(e, StackTrace.current);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    disposed = true;
-    _timer?.cancel();
-    super.dispose();
-  }
-}
+import 'package:stats_display/providers.dart';
 
 class SystemInfoScreen extends ConsumerWidget {
   final String systemUrl;
