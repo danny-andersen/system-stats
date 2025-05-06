@@ -7,13 +7,10 @@ import os
 
 app = Flask(__name__)
 
-@app.route("/stats", methods=["GET"])
-def get_stats():
+def getStats(full = False):
+    # CPU Stats 
     cpu = psutil.cpu_percent(interval=1)
-    cpu_count = psutil.cpu_count()
-    cpu_freq = psutil.cpu_freq()
     mem = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
     cpu_temp_raw = psutil.sensors_temperatures()
     temp = {}
     for name, entries in cpu_temp_raw.items():
@@ -43,29 +40,55 @@ def get_stats():
     except Exception as e:
         print(f"Error using gpustat: {e}")
 
-    stats = {
-        "cpu": {
-            "usage_percent": cpu,
-            "cpu_count" : cpu_count,
-            "cpu_freq" : cpu_freq,
-        },
-        "temperature": temp,
-        "memory": {
-            "total_gb": round(mem.total / (1024 ** 3), 2),
-            "used_gb": round(mem.used / (1024 ** 3), 2),
-            "free_gb": round(mem.available / (1024 ** 3), 2),
-            "usage_percent": mem.percent
-        },
-        # "temps": temps,
-        "disk": {
-            "total_gb": round(disk.total / (1024 ** 3), 2),
-            "used_gb": round(disk.used / (1024 ** 3), 2),
-            "free_gb": round(disk.free / (1024 ** 3), 2),
-            "usage_percent": disk.percent
-        },
-        "gpu": gpu_data,
-    }
+    if full:
+        cpu_count = psutil.cpu_count()
+        cpu_freq = psutil.cpu_freq()
+        disk = psutil.disk_usage('/')
+        stats = {
+            "cpu": {
+                "usage_percent": cpu,
+                "cpu_count" : cpu_count,
+                "cpu_freq" : cpu_freq,
+            },
+            "temperature": temp,
+            "memory": {
+                "total_gb": round(mem.total / (1024 ** 3), 2),
+                "used_gb": round(mem.used / (1024 ** 3), 2),
+                "free_gb": round(mem.available / (1024 ** 3), 2),
+                "usage_percent": mem.percent
+            },
+            # "temps": temps,
+            "disk": {
+                "total_gb": round(disk.total / (1024 ** 3), 2),
+                "used_gb": round(disk.used / (1024 ** 3), 2),
+                "free_gb": round(disk.free / (1024 ** 3), 2),
+                "usage_percent": disk.percent
+            },
+            "gpu": gpu_data,
+        }
+    else:    
+        stats = {
+            "cpu": {
+                "usage_percent": cpu,
+            },
+            "temperature": temp,
+            "memory": {
+                "usage_percent": mem.percent
+            },
+            "gpu": gpu_data,
+        }
+    return stats
+
+@app.route("/fullstats", methods=["GET"])
+def get_full_stats():
+    stats = getStats(full=True)
     return jsonify(stats)
+
+@app.route("/minstats", methods=["GET"])
+def get_min_stats():
+    stats = getStats(full=False)
+    return jsonify(stats)
+   
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

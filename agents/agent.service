@@ -1,0 +1,14 @@
+[Unit]
+Description=Agent for collecting and returning live system stats on request
+
+[Service]
+#Environment= MY_ENVIRONMENT_VAR =/path/to/file.config
+WorkingDirectory=/home/danny/agent
+User=danny
+ExecStart=/home/danny/agent/agent.sh
+KillSignal=SIGQUIT
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+

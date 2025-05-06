@@ -3,3 +3,4 @@ psutil
 pynvml
 gpustat
 WinTmp
+uwsgi
