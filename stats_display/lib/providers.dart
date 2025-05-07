@@ -1,9 +1,36 @@
 import 'dart:convert';
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+
+Color utilisationColor(value) {
+  if (value == null) {
+    return Colors.grey;
+  } else if (value is String) {
+    value = double.tryParse(value);
+  }
+  return value > 80
+      ? Colors.red
+      : (value > 60
+          ? Colors.orange
+          : (value > 40 ? Colors.amberAccent : Colors.green));
+}
+
+Color temperatureColor(value) {
+  if (value == null) {
+    return Colors.grey;
+  } else if (value is String) {
+    value = double.tryParse(value);
+  }
+  return value > 80
+      ? Colors.red
+      : (value > 60
+          ? Colors.orange
+          : (value > 40 ? Colors.amberAccent : Colors.blue));
+}
 
 final systemListProvider = FutureProvider<List<(String, String)>>((ref) async {
   final jsonString = await rootBundle.loadString('assets/systems.json');

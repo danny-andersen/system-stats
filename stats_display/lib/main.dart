@@ -33,7 +33,7 @@ class SystemListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final systemsAsync = ref.watch(systemListProvider);
     return Scaffold(
-      appBar: AppBar(title: Text('Systems Overview')),
+      appBar: AppBar(title: Text('Systems Status Overview')),
       body: systemsAsync.when(
         data:
             (systems) => ListView.builder(
@@ -103,38 +103,78 @@ class SystemListTile extends ConsumerWidget {
             data["gpu"].isNotEmpty
                 ? (data["gpu"][0]["utilization_percent"])
                 : null;
+        final gpuTemp =
+            data["gpu"].isNotEmpty
+                ? data["gpu"][0]["temperature_C"] * 1.0
+                : null;
 
-        return ListTile(
-          title: Text(
-            systemName,
-            style: TextStyle(fontWeight: FontWeight.bold),
+        return Card(
+          child: ListTile(
+            // contentPadding: EdgeInsets.only({5.0}),
+            title: Text(
+              systemName,
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              spacing: 5,
+              children: [
+                Text(
+                  'CPU: ${cpuUsage.toStringAsFixed(1)}%',
+                  style: TextStyle(color: utilisationColor(cpuUsage)),
+                ),
+                Text(
+                  'CPU Temp: ${cpuTemp.toStringAsFixed(1)}°C',
+                  style: TextStyle(color: temperatureColor(cpuTemp)),
+                ),
+                Text(
+                  'Mem: ${memoryUsage.toStringAsFixed(1)}%',
+                  style: TextStyle(color: utilisationColor(memoryUsage)),
+                ),
+                Text(
+                  'GPU: ${gpuUsage != null ? gpuUsage.toStringAsFixed(1) : 'N/A'}%',
+                  style: TextStyle(color: utilisationColor(gpuUsage)),
+                ),
+                Text(
+                  'GPU Temp: ${gpuTemp != null ? gpuTemp.toStringAsFixed(1) : 'N/A'}°C',
+                  style: TextStyle(color: temperatureColor(gpuTemp)),
+                ),
+              ],
+            ),
+            onTap:
+                () =>
+                    ref.read(selectedSystemProvider.notifier).state = (
+                      systemName,
+                      systemUrl,
+                    ),
           ),
-          subtitle: Text(
-            'CPU: ${cpuUsage.toStringAsFixed(1)}%, GPU: ${gpuUsage != null ? gpuUsage.toStringAsFixed(1) : 'N/A'}%, CPU Temp: ${cpuTemp.toStringAsFixed(1)}°C, Mem: ${memoryUsage.toStringAsFixed(1)}%',
-          ),
-          onTap:
-              () =>
-                  ref.read(selectedSystemProvider.notifier).state = (
-                    systemName,
-                    systemUrl,
-                  ),
         );
       },
       loading:
-          () => ListTile(
-            title: Text(
-              systemName,
-              style: TextStyle(fontWeight: FontWeight.bold),
+          () => Card(
+            child: ListTile(
+              title: Text(
+                systemName,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text('Loading...'),
             ),
-            subtitle: Text('Loading...'),
           ),
       error:
-          (err, stack) => ListTile(
-            title: Text(
-              systemName,
-              style: TextStyle(fontWeight: FontWeight.bold),
+          (err, stack) => Card(
+            child: ListTile(
+              title: Text(
+                systemName,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle:
+                  err.toString().contains("No route to host")
+                      ? Text("Unavailable")
+                      : ((err.toString().contains("Connection timed out") ||
+                              err.toString().contains("Connection refused"))
+                          ? Text("Agent service not running")
+                          : Text('Error: $err')),
             ),
-            subtitle: Text('Error: $err'),
           ),
     );
   }

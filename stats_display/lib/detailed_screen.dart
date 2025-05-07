@@ -46,15 +46,7 @@ class SystemInfoScreen extends ConsumerWidget {
                       data["memory"]["usage_percent"],
                       data["disk"]["usage_percent"],
                     ],
-                    dynamicColor:
-                        (value) =>
-                            value > 80
-                                ? Colors.red
-                                : (value > 60
-                                    ? Colors.orange
-                                    : (value > 40
-                                        ? Colors.amberAccent
-                                        : Colors.green)),
+                    dynamicColor: utilisationColor,
                     unit: '%',
                   ),
                 ]),
@@ -71,15 +63,7 @@ class SystemInfoScreen extends ConsumerWidget {
                       data["temperature"]["chipset"] ?? 0.0,
                       data["temperature"]["nvme"] ?? 0.0,
                     ],
-                    dynamicColor:
-                        (value) =>
-                            value > 80
-                                ? Colors.red
-                                : (value > 60
-                                    ? Colors.orange
-                                    : (value > 40
-                                        ? Colors.amberAccent
-                                        : Colors.blue)),
+                    dynamicColor: temperatureColor,
                     unit: '°C',
                   ),
                 ]),
