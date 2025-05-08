@@ -124,21 +124,25 @@ class SystemListTile extends ConsumerWidget {
                   style: TextStyle(color: utilisationColor(cpuUsage)),
                 ),
                 Text(
-                  'CPU Temp: ${cpuTemp.toStringAsFixed(1)}°C',
+                  '(${cpuTemp.toStringAsFixed(1)}°C)',
                   style: TextStyle(color: temperatureColor(cpuTemp)),
                 ),
                 Text(
                   'Mem: ${memoryUsage.toStringAsFixed(1)}%',
                   style: TextStyle(color: utilisationColor(memoryUsage)),
                 ),
-                Text(
-                  'GPU: ${gpuUsage != null ? gpuUsage.toStringAsFixed(1) : 'N/A'}%',
-                  style: TextStyle(color: utilisationColor(gpuUsage)),
-                ),
-                Text(
-                  'GPU Temp: ${gpuTemp != null ? gpuTemp.toStringAsFixed(1) : 'N/A'}°C',
-                  style: TextStyle(color: temperatureColor(gpuTemp)),
-                ),
+                gpuUsage != null
+                    ? Text(
+                      'GPU: ${gpuUsage.toStringAsFixed(1)}%',
+                      style: TextStyle(color: utilisationColor(gpuUsage)),
+                    )
+                    : const SizedBox.shrink(),
+                gpuUsage != null
+                    ? Text(
+                      '(${gpuTemp.toStringAsFixed(1)}°C)',
+                      style: TextStyle(color: temperatureColor(gpuTemp)),
+                    )
+                    : const SizedBox.shrink(),
               ],
             ),
             onTap:

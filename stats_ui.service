@@ -1,0 +1,13 @@
+[Unit]
+Description=Service to provide a GUI for System stats
+
+[Service]
+#Environment= MY_ENVIRONMENT_VAR =/path/to/file.config
+User=danny
+WorkingDirectory=/home/danny
+ExecStart=/home/danny/run_stats.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+

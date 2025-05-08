@@ -34,21 +34,32 @@ class SystemInfoScreen extends ConsumerWidget {
             (data) => ListView(
               children: [
                 buildInfoSection('Utilisation', [
-                  multiBarGraph(
-                    height: graphHeight,
-
-                    labels: ['CPU', 'GPU', 'Memory', 'Disk'],
-                    values: [
-                      data["cpu"]["usage_percent"],
-                      (data["gpu"] as List).isNotEmpty
-                          ? data["gpu"][0]["utilization_percent"] * 1.0
-                          : 0.0,
-                      data["memory"]["usage_percent"],
-                      data["disk"]["usage_percent"],
-                    ],
-                    dynamicColor: utilisationColor,
-                    unit: '%',
-                  ),
+                  (data["gpu"] as List).isNotEmpty
+                      ? multiBarGraph(
+                        height: graphHeight,
+                        labels: ['CPU', 'Mem', 'GPU', 'Mem'],
+                        values: [
+                          data["cpu"]["usage_percent"],
+                          data["memory"]["usage_percent"],
+                          data["gpu"][0]["utilization_percent"] * 1.0,
+                          data["gpu"][0]["memory_used_MB"] /
+                              data["gpu"][0]["memory_total_MB"] *
+                              100.0,
+                        ],
+                        dynamicColor: utilisationColor,
+                        unit: '%',
+                      )
+                      : multiBarGraph(
+                        height: graphHeight,
+                        labels: ['CPU', 'Mem', 'Disk'],
+                        values: [
+                          data["cpu"]["usage_percent"],
+                          data["memory"]["usage_percent"],
+                          data["disk"]["usage_percent"],
+                        ],
+                        dynamicColor: utilisationColor,
+                        unit: '%',
+                      ),
                 ]),
                 buildInfoSection('Temperature Readings', [
                   multiBarGraph(
