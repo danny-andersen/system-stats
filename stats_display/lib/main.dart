@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:stats_display/detailed_screen.dart';
 import 'package:stats_display/providers.dart';
+import 'package:stats_display/power-control.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,10 +62,13 @@ class SystemListScreen extends ConsumerWidget {
               child: Text('Drawer Header'),
             ),
             ListTile(
-              title: const Text('Item 1'),
+              title: const Text('Power Controller'),
               onTap: () {
-                // Update the state of the app.
-                // ...
+                // Navigate to Power controller screen.
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => RelayControlPage()),
+                );
               },
             ),
             ListTile(

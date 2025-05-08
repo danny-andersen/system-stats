@@ -221,3 +221,5 @@ stats_display/android/app/release
 stats_display/ios/Runner
 stats_display/windows/runner
 
+distribute_agent.sh
+stats_display/lib/providers.g.dart
