@@ -1,4 +1,6 @@
 from flask import Flask, jsonify
+from uwsgidecorators import *
+
 import psutil
 import gpustat
 from pynvml import *
@@ -7,8 +9,11 @@ import os
 
 app = Flask(__name__)
 
+gpuAvailable = True
+
 def getStats(full = False):
     # CPU Stats 
+    global gpuAvailable
     cpu = psutil.cpu_percent(interval=1)
     mem = psutil.virtual_memory()
     cpu_temp_raw = psutil.sensors_temperatures()
@@ -26,19 +31,22 @@ def getStats(full = False):
     # GPU Stats via gpustat
     gpu_data = []
     
-    try:
-        stats = gpustat.GPUStatCollection.new_query()
-        for gpu in stats.gpus:
-            gpu_data.append({
-                "name": gpu.name,
-                "index": gpu.index,
-                "temperature_C": gpu.temperature,
-                "utilization_percent": gpu.utilization,
-                "memory_used_MB": gpu.memory_used,
-                "memory_total_MB": gpu.memory_total
-            })
-    except Exception as e:
-        print(f"Error using gpustat: {e}")
+    if gpuAvailable:
+        # Only use gpustat if it is available
+        try:
+            stats = gpustat.GPUStatCollection.new_query()
+            for gpu in stats.gpus:
+                gpu_data.append({
+                    "name": gpu.name,
+                    "index": gpu.index,
+                    "temperature_C": gpu.temperature,
+                    "utilization_percent": gpu.utilization,
+                    "memory_used_MB": gpu.memory_used,
+                    "memory_total_MB": gpu.memory_total
+                })
+        except Exception as e:
+            gpuAvailable = False
+            print(f"Error using gpustat: {e}")
 
     if full:
         cpu_count = psutil.cpu_count()
@@ -79,6 +87,17 @@ def getStats(full = False):
         }
     return stats
 
+@postfork
+def setup():
+    # Initialize NVML
+    global gpuAvailable
+    try:
+        gpustat.GPUStatCollection.new_query()
+        gpuAvailable = True
+    except Exception as e:
+        print(f"Error initializing NVML: {e}")
+        gpuAvailable = False
+        
 @app.route("/fullstats", methods=["GET"])
 def get_full_stats():
     stats = getStats(full=True)
