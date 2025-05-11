@@ -182,6 +182,8 @@ class SystemListTile extends ConsumerWidget {
         final cpuUsage = data["cpu"]["usage_percent"];
         final cpuTemp = data["temperature"]["cpu"];
         final memoryUsage = data["memory"]["usage_percent"];
+        final swapUsage =
+            data.containsKey("swap") ? data["swap"]["usage_percent"] : 0;
         final gpuUsage =
             data["gpu"].isNotEmpty
                 ? (data["gpu"][0]["utilization_percent"])
@@ -214,6 +216,12 @@ class SystemListTile extends ConsumerWidget {
                   'Mem: ${memoryUsage.toStringAsFixed(1)}%',
                   style: TextStyle(color: utilisationColor(memoryUsage)),
                 ),
+                swapUsage != 0
+                    ? Text(
+                      'Swap: ${swapUsage.toStringAsFixed(1)}%',
+                      style: TextStyle(color: utilisationColor(swapUsage)),
+                    )
+                    : const SizedBox.shrink(),
                 gpuUsage != null
                     ? Text(
                       'GPU: ${gpuUsage.toStringAsFixed(1)}%',

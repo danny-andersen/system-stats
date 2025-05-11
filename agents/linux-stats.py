@@ -1,11 +1,14 @@
+import json
+import os
+
+from datetime import timedelta
 from flask import Flask, jsonify
 from uwsgidecorators import *
 
 import psutil
 import gpustat
 from pynvml import *
-import json
-import os
+import uptime
 
 app = Flask(__name__)
 
@@ -16,6 +19,7 @@ def getStats(full = False):
     global gpuAvailable
     cpu = psutil.cpu_percent(interval=1)
     mem = psutil.virtual_memory()
+    (stotal, sused, sfree, spercent, sin, sout) = psutil.swap_memory()
     cpu_temp_raw = psutil.sensors_temperatures()
     temp = {}
     for name, entries in cpu_temp_raw.items():
@@ -52,6 +56,9 @@ def getStats(full = False):
         cpu_count = psutil.cpu_count()
         cpu_freq = psutil.cpu_freq()
         disk = psutil.disk_usage('/')
+        upsecs = uptime.uptime()
+        bootStr = str(uptime.boottime())
+        uptimeStr = str(timedelta(seconds=upsecs))
         stats = {
             "cpu": {
                 "usage_percent": cpu,
@@ -65,6 +72,12 @@ def getStats(full = False):
                 "free_gb": round(mem.available / (1024 ** 3), 2),
                 "usage_percent": mem.percent
             },
+            "swap": {
+                "total_gb": round(stotal / (1024 ** 3), 2),
+                "used_gb": round(sused / (1024 ** 3), 2),
+                "free_gb": round(sfree / (1024 ** 3), 2),
+                "usage_percent": spercent
+            },
             # "temps": temps,
             "disk": {
                 "total_gb": round(disk.total / (1024 ** 3), 2),
@@ -73,6 +86,8 @@ def getStats(full = False):
                 "usage_percent": disk.percent
             },
             "gpu": gpu_data,
+            "uptime": uptimeStr,
+            "boot_time": bootStr,
         }
     else:    
         stats = {
@@ -82,6 +97,9 @@ def getStats(full = False):
             "temperature": temp,
             "memory": {
                 "usage_percent": mem.percent
+            },
+            "swap": {
+                "usage_percent": spercent
             },
             "gpu": gpu_data,
         }

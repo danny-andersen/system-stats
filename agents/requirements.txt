@@ -5,3 +5,5 @@ pynvml
 gpustat
 WinTmp
 uwsgi
+uptime
+

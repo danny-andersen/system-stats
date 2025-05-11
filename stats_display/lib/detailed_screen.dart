@@ -89,6 +89,16 @@ class SystemInfoScreen extends ConsumerWidget {
                       Text('Free: ${data["memory"]["free_gb"]} GB'),
                     ],
                   ),
+                  data.containsKey("swap")
+                      ? Row(
+                        spacing: 10.0,
+                        children: [
+                          Text('Swap: ${data["swap"]["total_gb"]} GB'),
+                          Text('Used: ${data["swap"]["used_gb"]} GB'),
+                          Text('Free: ${data["swap"]["free_gb"]} GB'),
+                        ],
+                      )
+                      : const SizedBox.shrink(),
                   data["gpu"].isNotEmpty
                       ? Row(
                         spacing: 10.0,
@@ -111,6 +121,8 @@ class SystemInfoScreen extends ConsumerWidget {
                     ],
                   ),
                   SizedBox(height: 5),
+                  Text('Uptime: ${data["uptime"]}'),
+                  Text('Last Boot: ${data["boot_time"]}'),
                 ]),
               ],
             ),
