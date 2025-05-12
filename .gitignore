@@ -224,8 +224,5 @@ stats_display/windows/runner
 distribute_agent.sh
 stats_display/lib/providers.g.dart
 agents/error_file.txt
-.gitignore
-.gitignore
 agents/nssm.exe
-.gitignore
-.gitignore
+agents/nssm-2.24.zip
