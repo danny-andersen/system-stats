@@ -226,3 +226,10 @@ stats_display/lib/providers.g.dart
 agents/error_file.txt
 agents/nssm.exe
 agents/nssm-2.24.zip
+stats_display/linux/flutter/generated_plugin_registrant.cc
+stats_display/linux/flutter/generated_plugin_registrant.cc
+stats_display/linux/flutter/generated_plugin_registrant.h
+stats_display/windows/flutter/generated_plugins.cmake
+stats_display/windows/flutter/generated_plugin_registrant.h
+stats_display/windows/flutter/generated_plugin_registrant.cc
+stats_display/macos/Flutter/GeneratedPluginRegistrant.swift

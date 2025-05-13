@@ -1,12 +1,11 @@
-import json
-import os
 from flask import Flask, jsonify
 import psutil
 import gpustat
-import WinTmp
+# import WinTmp
 from pynvml import *
 import uptime
 from datetime import timedelta
+from HardwareMonitor.Hardware import *  # equivalent to 'using LibreHardwareMonitor.Hardware;'
 
 app = Flask(__name__)
 
@@ -20,17 +19,18 @@ def getStats(full = False):
     cpu = psutil.cpu_percent(interval=1)
     mem = psutil.virtual_memory()
     (stotal, sused, sfree, spercent, sin, sout) = psutil.swap_memory()
-    cpu_temp_raw = WinTmp.CPU_Temps()
+    # cpu_temp_raw = WinTmp.CPU_Temps()
 
-    temp = {}
-    temp["cpu"] = cpu_temp_raw[0]
+    # temp = {}
+    # temp["cpu"] = cpu_temp_raw[0]
     # temp["vrm"] = cpu_temp_raw[1]
     # temp["chipset"] = cpu_temp_raw[2]
     # temp["nvme"] = cpu_temp_raw[0][3]
 
+    temp = getTemps()
+
     # GPU Stats via gpustat
     gpu_data = []
-    
     if gpuAvailable:
         # Only use gpustat if it is available
         try:
@@ -101,6 +101,62 @@ def getStats(full = False):
         }
     return stats
 
+class UpdateVisitor(IVisitor):
+    __namespace__ = "TestHardwareMonitor"  # must be unique among implementations of the IVisitor interface
+    def VisitComputer(self, computer: IComputer):
+        computer.Traverse(self)
+
+    def VisitHardware(self, hardware: IHardware):
+        hardware.Update()
+        for subHardware in hardware.SubHardware:
+            subHardware.Update()
+
+    def VisitParameter(self, parameter: IParameter): pass
+
+    def VisitSensor(self, sensor: ISensor): pass
+
+
+def getTemps():
+
+    computer = Computer()  # settings can not be passed as constructor argument (following below)
+    computer.IsMotherboardEnabled = True
+    # computer.IsControllerEnabled = True
+    # computer.IsCpuEnabled = True
+    # computer.IsGpuEnabled = True
+    # computer.IsBatteryEnabled = True
+    # computer.IsMemoryEnabled = True
+    # computer.IsNetworkEnabled = True
+    computer.IsStorageEnabled = True
+
+    computer.Open()
+    computer.Accept(UpdateVisitor())
+
+    temp = {}
+
+    for hardware in computer.Hardware:
+        if "Gigabyte B650" in hardware.Name:
+            for subhardware  in hardware.SubHardware:
+                # print(f"\tSubhardware: {subhardware.Name}")
+                for sensor in subhardware.Sensors:
+                    if sensor.Name == "Temperature #1":
+                        temp["system"] = sensor.Value
+                    if sensor.Name == "Temperature #2":
+                        temp["chipset"] = sensor.Value
+                    if sensor.Name == "Temperature #3":
+                        temp["cpu"] = sensor.Value
+                    if sensor.Name == "Temperature #4":
+                        temp["pciex16"] = sensor.Value
+                    if sensor.Name == "Temperature #5":
+                        temp["vrm"] = sensor.Value
+                    if sensor.Name == "Temperature #6":
+                        temp["vsocmos"] = sensor.Value
+        if "Samsung SSD 990" in hardware.Name:
+            for sensor in hardware.Sensors:
+                if sensor.Name == "Temperature":
+                    temp["nvme"] = sensor.Value
+
+    computer.Close()
+    return temp    
 
 @app.route("/fullstats", methods=["GET"])
 def get_full_stats():
