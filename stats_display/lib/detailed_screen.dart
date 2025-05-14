@@ -58,8 +58,8 @@ class SystemInfoScreen extends ConsumerWidget {
           List<double> tempValues =
               data["temperature"].values.toList().cast<double>();
           if (data["gpu"].isNotEmpty) {
-            tempValues.add(data["gpu"][0]["temperature_C"] * 1.0);
-            tempLabels.add('gpu');
+            tempValues.insert(0, data["gpu"][0]["temperature_C"] * 1.0);
+            tempLabels.insert(0, 'gpu');
           }
           double tempGraphHeight =
               data["temperature"].length * graphHeightByValue;
