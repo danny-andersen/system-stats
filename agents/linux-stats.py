@@ -110,6 +110,7 @@ def setup():
     # Initialize NVML
     global gpuAvailable
     try:
+        nvmlInit()
         gpustat.GPUStatCollection.new_query()
         gpuAvailable = True
     except Exception as e:
