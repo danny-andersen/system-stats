@@ -139,17 +139,17 @@ def getTemps():
                 # print(f"\tSubhardware: {subhardware.Name}")
                 for sensor in subhardware.Sensors:
                     if sensor.Name == "Temperature #1":
-                        temp["system"] = sensor.Value
+                        temp["sys"] = sensor.Value
                     if sensor.Name == "Temperature #2":
-                        temp["chipset"] = sensor.Value
+                        temp["chips"] = sensor.Value
                     if sensor.Name == "Temperature #3":
                         temp["cpu"] = sensor.Value
                     if sensor.Name == "Temperature #4":
-                        temp["pciex16"] = sensor.Value
+                        temp["pci"] = sensor.Value
                     if sensor.Name == "Temperature #5":
                         temp["vrm"] = sensor.Value
                     if sensor.Name == "Temperature #6":
-                        temp["vsocmos"] = sensor.Value
+                        temp["vso"] = sensor.Value
         if "Samsung SSD 990" in hardware.Name:
             for sensor in hardware.Sensors:
                 if sensor.Name == "Temperature":
