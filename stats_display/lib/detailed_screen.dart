@@ -16,11 +16,12 @@ class SystemInfoScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncSystemData = ref.watch(systemDetailNotifierProvider(systemUrl));
-    final screenSize = MediaQuery.of(context).size;
-    final graphHeight = screenSize.height * 0.15;
+    // final screenSize = MediaQuery.of(context).size;
+    final graphHeightByValue = 45.0;
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 35,
         title: Text('$systemName Monitor', style: TextStyle(fontSize: 15)),
 
         leading: IconButton(
@@ -30,102 +31,108 @@ class SystemInfoScreen extends ConsumerWidget {
         ),
       ),
       body: asyncSystemData.when(
-        data:
-            (data) => ListView(
-              children: [
-                buildInfoSection('Utilisation', [
-                  (data["gpu"] as List).isNotEmpty
-                      ? multiBarGraph(
-                        height: graphHeight,
-                        labels: ['CPU', 'Mem', 'GPU', 'Mem'],
-                        values: [
-                          data["cpu"]["usage_percent"],
-                          data["memory"]["usage_percent"],
-                          data["gpu"][0]["utilization_percent"] * 1.0,
-                          data["gpu"][0]["memory_used_MB"] /
-                              data["gpu"][0]["memory_total_MB"] *
-                              100.0,
-                        ],
-                        dynamicColor: utilisationColor,
-                        unit: '%',
-                      )
-                      : multiBarGraph(
-                        height: graphHeight,
-                        labels: ['CPU', 'Mem', 'Disk'],
-                        values: [
-                          data["cpu"]["usage_percent"],
-                          data["memory"]["usage_percent"],
-                          data["disk"]["usage_percent"],
-                        ],
-                        dynamicColor: utilisationColor,
-                        unit: '%',
-                      ),
-                ]),
-                buildInfoSection('Temperature Readings', [
-                  multiBarGraph(
-                    height: graphHeight,
-                    labels: ['CPU', 'GPU', 'VRM', 'Chipset', 'NVME'],
-                    values: [
-                      data["temperature"]["cpu"],
-                      data["gpu"].isNotEmpty
-                          ? data["gpu"][0]["temperature_C"] * 1.0
-                          : 0.0,
-                      data["temperature"]["vrm"] ?? 0.0,
-                      data["temperature"]["chipset"] ?? 0.0,
-                      data["temperature"]["nvme"] ?? 0.0,
-                    ],
-                    dynamicColor: temperatureColor,
-                    unit: '°C',
-                  ),
-                ]),
-                buildInfoSection('Detailed Stats', [
-                  Text('CPU Count: ${data["cpu"]["cpu_count"]}'),
-                  Text('CPU Frequency: ${data["cpu"]["cpu_freq"]} MHz'),
-                  Row(
-                    spacing: 10.0,
-                    children: [
-                      Text('DRAM: ${data["memory"]["total_gb"]} GB'),
-                      Text('Used: ${data["memory"]["used_gb"]} GB'),
-                      Text('Free: ${data["memory"]["free_gb"]} GB'),
-                    ],
-                  ),
-                  data.containsKey("swap")
-                      ? Row(
-                        spacing: 10.0,
-                        children: [
-                          Text('Swap: ${data["swap"]["total_gb"]} GB'),
-                          Text('Used: ${data["swap"]["used_gb"]} GB'),
-                          Text('Free: ${data["swap"]["free_gb"]} GB'),
-                        ],
-                      )
-                      : const SizedBox.shrink(),
-                  data["gpu"].isNotEmpty
-                      ? Row(
-                        spacing: 10.0,
-                        children: [
-                          Text(
-                            'GPU Memory: ${((data["gpu"][0]["memory_total_MB"]) / 1024.0).toStringAsPrecision(2)} GB',
-                          ),
-                          Text(
-                            'Used: ${((data["gpu"][0]["memory_used_MB"]) / 1024.0).toStringAsPrecision(2)} GB',
-                          ),
-                        ],
-                      )
-                      : Text("No GPU Detected"),
-                  Row(
-                    spacing: 5.0,
-                    children: [
-                      Text('Main Disk: ${data["disk"]["total_gb"]} GB'),
-                      Text('Used: ${data["disk"]["used_gb"]} GB'),
-                      Text('Free: ${data["disk"]["free_gb"]} GB'),
-                    ],
-                  ),
-                  SizedBox(height: 5),
-                  Text('Uptime: ${data["uptime"]}'),
-                  Text('Last Boot: ${data["boot_time"]}'),
-                ]),
-              ],
-            ),
+        data: (data) {
+          List<String> utilLabels = ['cpu', 'mem'];
+          List<double> utilValues = [
+            data["cpu"]["usage_percent"],
+            data["memory"]["usage_percent"],
+          ];
+          if ((data["gpu"] as List).isNotEmpty) {
+            utilLabels.addAll(['gpu', 'mem']);
+            utilValues.addAll([
+              data["gpu"][0]["utilization_percent"] * 1.0,
+              data["gpu"][0]["memory_used_MB"] /
+                  data["gpu"][0]["memory_total_MB"] *
+                  100.0,
+            ]);
+          } else {
+            utilLabels.add('disk');
+            utilValues.add(data["disk"]["usage_percent"]);
+          }
+          if (data.containsKey("swap") && data["swap"]["usage_percent"] != 0) {
+            utilLabels.add('swap');
+            utilValues.add(data["swap"]["usage_percent"]);
+          }
+
+          List<String> tempLabels = data["temperature"].keys.toList();
+          List<double> tempValues =
+              data["temperature"].values.toList().cast<double>();
+          if (data["gpu"].isNotEmpty) {
+            tempValues.add(data["gpu"][0]["temperature_C"] * 1.0);
+            tempLabels.add('gpu');
+          }
+          double tempGraphHeight =
+              data["temperature"].length * graphHeightByValue;
+
+          return ListView(
+            children: [
+              buildInfoSection('Utilisation %', [
+                multiBarGraph(
+                  height: graphHeightByValue * utilValues.length,
+                  labels: utilLabels,
+                  values: utilValues,
+                  dynamicColor: utilisationColor,
+                  unit: '%',
+                ),
+              ]),
+              buildInfoSection('Temperatures °C', [
+                multiBarGraph(
+                  height: tempGraphHeight,
+                  labels: tempLabels,
+                  values: tempValues,
+                  dynamicColor: temperatureColor,
+                  unit: '°C',
+                ),
+              ]),
+              buildInfoSection('Detailed Stats', [
+                Text('CPU Count: ${data["cpu"]["cpu_count"]}'),
+                Text('CPU Frequency: ${data["cpu"]["cpu_freq"]} MHz'),
+                Row(
+                  spacing: 10.0,
+                  children: [
+                    Text('DRAM: ${data["memory"]["total_gb"]} GB'),
+                    Text('Used: ${data["memory"]["used_gb"]} GB'),
+                    Text('Free: ${data["memory"]["free_gb"]} GB'),
+                  ],
+                ),
+                data.containsKey("swap")
+                    ? Row(
+                      spacing: 10.0,
+                      children: [
+                        Text('Swap: ${data["swap"]["total_gb"]} GB'),
+                        Text('Used: ${data["swap"]["used_gb"]} GB'),
+                        Text('Free: ${data["swap"]["free_gb"]} GB'),
+                      ],
+                    )
+                    : const SizedBox.shrink(),
+                data["gpu"].isNotEmpty
+                    ? Row(
+                      spacing: 10.0,
+                      children: [
+                        Text(
+                          'GPU Memory: ${((data["gpu"][0]["memory_total_MB"]) / 1024.0).toStringAsPrecision(2)} GB',
+                        ),
+                        Text(
+                          'Used: ${((data["gpu"][0]["memory_used_MB"]) / 1024.0).toStringAsPrecision(2)} GB',
+                        ),
+                      ],
+                    )
+                    : Text("No GPU Detected"),
+                Row(
+                  spacing: 5.0,
+                  children: [
+                    Text('Main Disk: ${data["disk"]["total_gb"]} GB'),
+                    Text('Used: ${data["disk"]["used_gb"]} GB'),
+                    Text('Free: ${data["disk"]["free_gb"]} GB'),
+                  ],
+                ),
+                SizedBox(height: 5),
+                Text('Uptime: ${data["uptime"]}'),
+                Text('Last Boot: ${data["boot_time"]}'),
+              ]),
+            ],
+          );
+        },
         loading: () => Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
       ),
@@ -162,7 +169,7 @@ class SystemInfoScreen extends ConsumerWidget {
     required String unit,
   }) {
     return SizedBox(
-      height: 200,
+      height: height,
       child: BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceAround,

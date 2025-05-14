@@ -116,7 +116,7 @@ class SystemListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final systemsAsync = ref.watch(systemListProvider);
     return Scaffold(
-      appBar: AppBar(title: Text('Systems Status Overview')),
+      appBar: AppBar(title: Text('Systems Status Overview'), toolbarHeight: 35),
       body: systemsAsync.when(
         data:
             (systems) => ListView.builder(
