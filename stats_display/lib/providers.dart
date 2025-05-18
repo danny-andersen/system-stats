@@ -197,25 +197,32 @@ class SystemDetailNotifier
 }
 
 void areWeOnLocalNetwork(Function callback) {
+  bool found = false;
   NetworkInterface.list().then((interfaces) {
     for (NetworkInterface interface in interfaces) {
       for (InternetAddress addr in interface.addresses) {
         if (addr.address.contains('192.168.')) {
-          //On a private network
-          //Need to ping local thermostat to check we are on the same lan
-          Ping('thermostat-host', count: 1).stream.first
-              .then((pingData) {
-                if (pingData.error == null) {
-                  callback(true);
-                } else {
-                  callback(false);
-                }
-              })
-              .catchError((onError) {
-                callback(false);
-              });
+          found = true;
+          // //On a private network
+          // //Need to ping local thermostat to check we are on the same lan
+          // Ping('thermostat-host', count: 1).stream.first
+          //     .then((pingData) {
+          //       if (pingData.error == null) {
+          //         callback(true);
+          //       } else {
+          //         callback(false);
+          //       }
+          //     })
+          //     .catchError((onError) {
+          //       print(onError);
+          //       callback(false);
+          //     });
+          callback(found);
           break;
         }
+      }
+      if (found) {
+        break;
       }
     }
   });
@@ -244,6 +251,7 @@ class RelayStatus {
   );
 
   RelayStatus copyWith({
+    bool? localLan,
     List<bool>? actualRelayStates,
     List<bool>? requestedRelayStates,
     DateTime? updateTime,
@@ -267,6 +275,9 @@ class RelayStatus {
           newReqRelayStates[i] = requestedRelayStates[i];
         }
       }
+    }
+    if (localLan != null) {
+      onLocalLan = localLan;
     }
     if (updateTime != null) {
       lastUpdateTime = updateTime;
@@ -331,12 +342,16 @@ class RelayStatusNotifier extends _$RelayStatusNotifier {
   RelayStatus build() {
     RelayStatus status = RelayStatus(onLocalLan: false);
     //Check if we are on local LAN
-    areWeOnLocalNetwork((onlan) => status.onLocalLan = onlan);
+    areWeOnLocalNetwork((onlan) => status = status.copyWith(localLan: onlan));
     return status;
   }
 
   void refreshStatus() {
-    getStatus();
+    if (state.onLocalLan) {
+      getStatus();
+    } else {
+      areWeOnLocalNetwork((onlan) => state = state.copyWith(localLan: onlan));
+    }
   }
 
   void setRelayState(int index, bool reqState) {
@@ -361,12 +376,12 @@ class RelayStatusNotifier extends _$RelayStatusNotifier {
       );
       localSend.then((success) {
         if (!success) {
-          print("On local Lan but failed to send, so send again using Dropbox");
-          sendRelayCommandToHost(
-            index: index,
-            reqState: reqState,
-            dropboxOnly: true,
-          );
+          print("On local Lan but failed to send command file");
+          // sendRelayCommandToHost(
+          //   index: index,
+          //   reqState: reqState,
+          //   dropboxOnly: true,
+          // );
         }
       });
     } else {
@@ -382,7 +397,7 @@ class RelayStatusNotifier extends _$RelayStatusNotifier {
 
   void getStatus({bool dropboxOnly = false}) {
     bool localRead = false;
-    if (!dropboxOnly && state.onLocalLan && !state.localGetInProgress) {
+    if (!state.localGetInProgress) {
       //Use ftp to retrieve status file direct from control station
       Future<Map<String, String>> localReceive = LocalSendReceive.getLocalFile([
         localRelayStatusFile,
@@ -399,37 +414,13 @@ class RelayStatusNotifier extends _$RelayStatusNotifier {
           }
         }
         if (!success) {
-          //Failed to get some status files locally, use dropbox
-          DropBoxAPIFn.getDropBoxFile(
-            // oauthToken: state.oauthToken,
-            fileToDownload: "/$relayFile",
-            callback: processRelayStateFile,
-            contentType: ContentType.text,
-            timeoutSecs: 5,
-          );
+          print("Failed to get status file from thermostat-host");
         }
       });
     } else {
-      if (!dropboxOnly) {
-        //Get status file from local storage
-        FileStat stat = FileStat.statSync(relayFile);
-        if (stat.type != FileSystemEntityType.notFound) {
-          String statusStr = File(relayFile).readAsStringSync();
-          localRead = true;
-          processRelayStateFile(relayFile, statusStr);
-        }
-      }
-      if (!localRead) {
-        DropBoxAPIFn.getDropBoxFile(
-          // oauthToken: state.oauthToken,
-          fileToDownload: '/$relayFile',
-          callback: processRelayStateFile,
-          contentType: ContentType.text,
-          timeoutSecs: 1, //Cache entry timeout
-        );
-      }
+      print("getStatus(): Get already in progress");
     }
-    //Now get cluster node temp file sent by the fan controller
+    // Now get cluster node temp file sent by the fan controller
     DropBoxAPIFn.getDropBoxFile(
       // oauthToken: state.oauthToken,
       fileToDownload: nodeTemperatureFile,

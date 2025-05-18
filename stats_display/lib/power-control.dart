@@ -51,7 +51,7 @@ class _RelayControlPageState extends ConsumerState<RelayControlPage> {
         return 2000;
       }
     }
-    return provider.onLocalLan && !provider.localGetInProgress ? 5000 : 15000;
+    return provider.onLocalLan && !provider.localGetInProgress ? 3000 : 5000;
   }
 
   void updateStatus() {
