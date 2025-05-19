@@ -19,8 +19,6 @@ class RelayControlPage extends ConsumerStatefulWidget {
 class _RelayControlPageState extends ConsumerState<RelayControlPage> {
   _RelayControlPageState();
 
-  String? selectedCommand;
-  List<String> commandFiles = ['cluster_on.txt', 'cluster_off.txt'];
   List<String> socket = [
     'pi4desktop ',
     'pi4node0   ',
@@ -51,7 +49,7 @@ class _RelayControlPageState extends ConsumerState<RelayControlPage> {
         return 2000;
       }
     }
-    return provider.onLocalLan && !provider.localGetInProgress ? 3000 : 5000;
+    return provider.onLocalLan && !provider.localGetInProgress ? 5000 : 10000;
   }
 
   void updateStatus() {
@@ -76,13 +74,6 @@ class _RelayControlPageState extends ConsumerState<RelayControlPage> {
 
   void fetchRelayStates() {
     ref.read(relayStatusNotifierProvider.notifier).refreshStatus();
-  }
-
-  void executeCommand() {
-    if (selectedCommand != null) {
-      // Add logic to execute selected command file
-      print('Executing $selectedCommand');
-    }
   }
 
   static const WidgetStateProperty<Icon> thumbIcon =
@@ -257,26 +248,22 @@ class _RelayControlPageState extends ConsumerState<RelayControlPage> {
             }),
             SizedBox(height: 10),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(width: 10),
-                DropdownButton<String>(
-                  value: selectedCommand,
-                  hint: Text('Select Script    '),
-                  items:
-                      commandFiles.map((cmd) {
-                        return DropdownMenuItem(value: cmd, child: Text(cmd));
-                      }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedCommand = value;
-                    });
-                  },
-                ),
-                SizedBox(width: 40),
                 ElevatedButton(
-                  onPressed: executeCommand,
-                  child: Text('Execute'),
+                  onPressed:
+                      () => ref
+                          .read(relayStatusNotifierProvider.notifier)
+                          .clusterOn(context),
+                  child: const Text('Cluster ON'),
+                ),
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed:
+                      () => ref
+                          .read(relayStatusNotifierProvider.notifier)
+                          .clusterOff(context),
+                  child: const Text('Cluster OFF'),
                 ),
               ],
             ),

@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -59,11 +61,12 @@ class LocalSendReceive {
     keys = SSHKeyPair.fromPem(keyString, passphrase);
   }
 
-  static Future<bool> sendLocalFile(
-      {required String fileName,
-      required String contents,
-      String? hostToSend,
-      bool append = false}) async {
+  static Future<bool> sendLocalFile({
+    required String fileName,
+    required String contents,
+    String? hostToSend,
+    bool append = false,
+  }) async {
     //On same LAN as control station - send file to controlstation using sftp
     bool success = false;
     SSHClient? client;
@@ -76,24 +79,31 @@ class LocalSendReceive {
         identities: keys,
       );
       sftp = await client.sftp();
-      final file = await sftp.open(fileName,
-          mode: SftpFileOpenMode.create |
-              (append ? SftpFileOpenMode.append : SftpFileOpenMode.write) |
-              SftpFileOpenMode.write);
+      final file = await sftp.open(
+        fileName,
+        mode:
+            SftpFileOpenMode.create |
+            (append ? SftpFileOpenMode.append : SftpFileOpenMode.write) |
+            SftpFileOpenMode.write,
+      );
       await file.writeBytes(utf8.encode(contents));
       success = true;
     } catch (e) {
       if (sftp != null && append) {
         //If append fails, try to create a new file
         print(
-            "Host: $hostName: Failed to append to file $fileName, trying to create new file: $e");
-        final file = await sftp.open(fileName,
-            mode: SftpFileOpenMode.create | SftpFileOpenMode.write);
+          "Host: $hostName: Failed to append to file $fileName, trying to create new file: $e",
+        );
+        final file = await sftp.open(
+          fileName,
+          mode: SftpFileOpenMode.create | SftpFileOpenMode.write,
+        );
         await file.writeBytes(utf8.encode(contents));
         success = true;
       } else {
         print(
-            "Caught SSH / SFTP error for host $host writing file $fileName: $e");
+          "Caught SSH / SFTP error for host $host writing file $fileName: $e",
+        );
       }
     } finally {
       client?.close();
@@ -102,8 +112,32 @@ class LocalSendReceive {
     return success;
   }
 
+  static Future<String> runSSHCommand(String command) async {
+    //On same LAN as control station - run command on controlstation using ssh
+    SSHClient? client;
+    try {
+      client = SSHClient(
+        await SSHSocket.connect(host, 22),
+        username: username,
+        identities: keys,
+      );
+      final session = await client.execute(command);
+      final output =
+          await session.stdout.cast<List<int>>().transform(utf8.decoder).join();
+      client.close();
+
+      return ("Successfully executed command: $output");
+    } catch (e) {
+      return ("Caught SSH error connecting to $host : $e");
+    } finally {
+      client?.close();
+      await client?.done;
+    }
+  }
+
   static Future<Map<String, String>> getLocalFile(
-      List<String> fileNames) async {
+    List<String> fileNames,
+  ) async {
     //On same LAN as control station - get file from controlstation using sftp
     Map<String, String> files = {};
     SSHClient? client;
@@ -121,7 +155,8 @@ class LocalSendReceive {
           files[fileName] = utf8.decode(content);
         } catch (fe) {
           print(
-              "Caught SSH / SFTP error connecting to $host reading file $fileName : $fe");
+            "Caught SSH / SFTP error connecting to $host reading file $fileName : $fe",
+          );
         }
       }
     } catch (e) {
@@ -142,8 +177,13 @@ class FileEntry {
   final int size;
   final bool isFolder;
 
-  FileEntry(this.fileName, this.fullPathName, this.lastModified, this.size,
-      this.isFolder);
+  FileEntry(
+    this.fileName,
+    this.fullPathName,
+    this.lastModified,
+    this.size,
+    this.isFolder,
+  );
 
   IconData getIcon() {
     IconData returnIcon = Icons.file_download;
@@ -160,7 +200,7 @@ class FileEntry {
       'path_display': fullPathName,
       'server_modified': lastModified.toString(),
       '.tag': isFolder ? 'folder' : 'file',
-      'size': size
+      'size': size,
     };
   }
 
@@ -199,14 +239,17 @@ class FileListing {
 
   factory FileListing.fromJson(Map<String, dynamic> json) {
     List<FileEntry> entries = List.filled(
-        0, FileEntry("", "", DateTime.now(), 0, false),
-        growable: true);
+      0,
+      FileEntry("", "", DateTime.now(), 0, false),
+      growable: true,
+    );
     bool isFolderList = false;
     if (json.containsKey('matches')) {
       var list = json['matches'] as List;
-      List<FileMatch> matches = list
-          .map((js) => FileMatch.fromJson(js['metadata']['metadata']))
-          .toList();
+      List<FileMatch> matches =
+          list
+              .map((js) => FileMatch.fromJson(js['metadata']['metadata']))
+              .toList();
       entries = matches.map((match) => match.fileEntry).toList();
     } else if (json.containsKey('entries')) {
       isFolderList = true;
@@ -220,7 +263,7 @@ class FileListing {
   Map<String, dynamic> toJson() {
     return {
       isFolderListing ? 'entries' : 'matches':
-          fileEntries.map((entry) => entry.toJson()).toList()
+          fileEntries.map((entry) => entry.toJson()).toList(),
     };
   }
 }
@@ -255,32 +298,39 @@ class DropBoxAPIFn {
       return;
     }
     HttpClient client = HttpClient();
-    final Uri downloadUri =
-        Uri.parse("https://content.dropboxapi.com/2/files/download");
+    final Uri downloadUri = Uri.parse(
+      "https://content.dropboxapi.com/2/files/download",
+    );
 
     try {
-      client.getUrl(downloadUri).then((HttpClientRequest request) {
-        request.headers.add("Authorization", "Bearer $oauthToken");
-        request.headers
-            .add("Dropbox-API-Arg", "{\"path\": \"$fileToDownload\"}");
-        return request.close();
-      }).then((HttpClientResponse response) async {
-        if (contentType == ContentType.text) {
-          String contents = await response.transform(utf8.decoder).join();
-          final List<int> codeUnits = contents.codeUnits;
-          final Uint8List bytes = Uint8List.fromList(codeUnits);
-          cache.set(fileToDownload, bytes, timeoutSecs);
-          callback(fileToDownload, contents);
-        } else {
-          Uint8List contents =
-              await consolidateHttpClientResponseBytes(response);
-          if (contentType == ContentType.image) {
-            //Only cache images, not videos
-            cache.set(fileToDownload, contents, timeoutSecs);
-          }
-          callback(fileToDownload, contents, folder, fileIndex);
-        }
-      });
+      client
+          .getUrl(downloadUri)
+          .then((HttpClientRequest request) {
+            request.headers.add("Authorization", "Bearer $oauthToken");
+            request.headers.add(
+              "Dropbox-API-Arg",
+              "{\"path\": \"$fileToDownload\"}",
+            );
+            return request.close();
+          })
+          .then((HttpClientResponse response) async {
+            if (contentType == ContentType.text) {
+              String contents = await response.transform(utf8.decoder).join();
+              final List<int> codeUnits = contents.codeUnits;
+              final Uint8List bytes = Uint8List.fromList(codeUnits);
+              cache.set(fileToDownload, bytes, timeoutSecs);
+              callback(fileToDownload, contents);
+            } else {
+              Uint8List contents = await consolidateHttpClientResponseBytes(
+                response,
+              );
+              if (contentType == ContentType.image) {
+                //Only cache images, not videos
+                cache.set(fileToDownload, contents, timeoutSecs);
+              }
+              callback(fileToDownload, contents, folder, fileIndex);
+            }
+          });
     } on HttpException catch (he) {
       print("Got HttpException downloading file: ${he.toString()}");
     }
@@ -303,34 +353,43 @@ class DropBoxAPIFn {
     String mode =
         append ? "add" : "overwrite"; //Overwrite or add to file if it exists
     HttpClient client = HttpClient();
-    final Uri uploadUri =
-        Uri.parse("https://content.dropboxapi.com/2/files/upload");
+    final Uri uploadUri = Uri.parse(
+      "https://content.dropboxapi.com/2/files/upload",
+    );
 
     try {
-      client.postUrl(uploadUri).then((HttpClientRequest request) {
-        request.headers.add("Authorization", "Bearer $oauthToken");
-        request.headers.add("Dropbox-API-Arg",
-            "{\"path\": \"$fileToUpload\", \"mode\": \"$mode\", \"mute\": true}");
-        request.headers
-            .add(HttpHeaders.contentTypeHeader, "application/octet-stream");
-        request.write(contents);
-        return request.close();
-      }).then((HttpClientResponse response) {
-        if (callback != null) {
-          callback(contents, callbackMsg);
-        }
-      });
+      client
+          .postUrl(uploadUri)
+          .then((HttpClientRequest request) {
+            request.headers.add("Authorization", "Bearer $oauthToken");
+            request.headers.add(
+              "Dropbox-API-Arg",
+              "{\"path\": \"$fileToUpload\", \"mode\": \"$mode\", \"mute\": true}",
+            );
+            request.headers.add(
+              HttpHeaders.contentTypeHeader,
+              "application/octet-stream",
+            );
+            request.write(contents);
+            return request.close();
+          })
+          .then((HttpClientResponse response) {
+            if (callback != null) {
+              callback(contents, callbackMsg);
+            }
+          });
     } on HttpException catch (he) {
       print("Got HttpException sending file: ${he.toString()}");
     }
   }
 
-  static void searchDropBoxFileNames(
-      {required String oauthToken,
-      required String filePattern,
-      required Function callback,
-      int maxResults = 31,
-      String filePath = ""}) {
+  static void searchDropBoxFileNames({
+    required String oauthToken,
+    required String filePattern,
+    required Function callback,
+    int maxResults = 31,
+    String filePath = "",
+  }) {
     if (oauthToken == "BLANK") {
       oauthToken = DropBoxAPIFn.globalOauthToken;
       if (oauthToken == "BLANK") {
@@ -343,24 +402,32 @@ class DropBoxAPIFn {
       return;
     }
     HttpClient client = HttpClient();
-    final Uri uploadUri =
-        Uri.parse("https://api.dropboxapi.com/2/files/search_v2");
+    final Uri uploadUri = Uri.parse(
+      "https://api.dropboxapi.com/2/files/search_v2",
+    );
     try {
-      client.postUrl(uploadUri).then((HttpClientRequest request) {
-        request.headers.add("Authorization", "Bearer $oauthToken");
-        request.headers.add(HttpHeaders.contentTypeHeader, "application/json");
-        request.write(
-            "{\"options\":{\"path\": \"$filePath\", \"max_results\": $maxResults, \"filename_only\": true}, \"query\": \"$filePattern\"}");
-        return request.close();
-      }).then((HttpClientResponse response) async {
-        String contents = await response.transform(utf8.decoder).join();
-        // print('Got response:');
-        // print(contents.toString());
-        final List<int> codeUnits = contents.codeUnits;
-        final Uint8List bytes = Uint8List.fromList(codeUnits);
-        cache.set(filePattern, bytes, 600);
-        callback(FileListing.fromJson(jsonDecode(contents)));
-      });
+      client
+          .postUrl(uploadUri)
+          .then((HttpClientRequest request) {
+            request.headers.add("Authorization", "Bearer $oauthToken");
+            request.headers.add(
+              HttpHeaders.contentTypeHeader,
+              "application/json",
+            );
+            request.write(
+              "{\"options\":{\"path\": \"$filePath\", \"max_results\": $maxResults, \"filename_only\": true}, \"query\": \"$filePattern\"}",
+            );
+            return request.close();
+          })
+          .then((HttpClientResponse response) async {
+            String contents = await response.transform(utf8.decoder).join();
+            // print('Got response:');
+            // print(contents.toString());
+            final List<int> codeUnits = contents.codeUnits;
+            final Uint8List bytes = Uint8List.fromList(codeUnits);
+            cache.set(filePattern, bytes, 600);
+            callback(FileListing.fromJson(jsonDecode(contents)));
+          });
     } on HttpException catch (he) {
       print("Got HttpException during search: ${he.toString()}");
     }
@@ -396,53 +463,63 @@ class DropBoxAPIFn {
     }
     HttpClient client = HttpClient();
     final Uri uploadUri = Uri.parse(
-        "https://api.dropboxapi.com/2/files/list_folder${cursor != '' ? '/continue' : ''}");
+      "https://api.dropboxapi.com/2/files/list_folder${cursor != '' ? '/continue' : ''}",
+    );
     try {
-      client.postUrl(uploadUri).then((HttpClientRequest request) {
-        request.headers.add("Authorization", "Bearer $oauthToken");
-        request.headers.add(HttpHeaders.contentTypeHeader, "application/json");
-        if (cursor != '') {
-          request.write("{\"cursor\": \"$cursor\"}");
-        } else {
-          request.write("{\"path\": \"$folder\"}");
-        }
-        return request.close();
-      }).then((HttpClientResponse response) async {
-        String contents = await response.transform(utf8.decoder).join();
-        // print('Got response:');
-        // print(contents);
-        var json = jsonDecode(contents);
-        FileListing entries = FileListing.fromJson(json);
-        String cacheEntry = String.fromCharCodes(cache.get(folder));
-        if (cacheEntry != '') {
-          //Add the cache entries to the new entries
-          FileListing newEntries = FileListing.fromJson(jsonDecode(cacheEntry));
-          entries.fileEntries.addAll(newEntries.fileEntries);
-          //Add to the cache
-          String newStr = jsonEncode(entries.toJson());
-          final List<int> codeUnits = newStr.codeUnits;
-          final Uint8List bytes = Uint8List.fromList(codeUnits);
-          cache.set(folder, bytes, timeoutSecs);
-        } else {
-          final List<int> codeUnits = contents.codeUnits;
-          final Uint8List bytes = Uint8List.fromList(codeUnits);
-          cache.set(folder, bytes, timeoutSecs);
-        }
-        if (json['has_more']) {
-          cursor = json['cursor'];
-          //Need to recursively call continue url and add to list
-          // print("Recursive call");
-          listFolder(
-              oauthToken: oauthToken,
-              folder: folder,
-              callback: callback,
-              timeoutSecs: timeoutSecs,
-              cursor: cursor,
-              maxResults: maxResults);
-        } else {
-          callback(entries);
-        }
-      });
+      client
+          .postUrl(uploadUri)
+          .then((HttpClientRequest request) {
+            request.headers.add("Authorization", "Bearer $oauthToken");
+            request.headers.add(
+              HttpHeaders.contentTypeHeader,
+              "application/json",
+            );
+            if (cursor != '') {
+              request.write("{\"cursor\": \"$cursor\"}");
+            } else {
+              request.write("{\"path\": \"$folder\"}");
+            }
+            return request.close();
+          })
+          .then((HttpClientResponse response) async {
+            String contents = await response.transform(utf8.decoder).join();
+            // print('Got response:');
+            // print(contents);
+            var json = jsonDecode(contents);
+            FileListing entries = FileListing.fromJson(json);
+            String cacheEntry = String.fromCharCodes(cache.get(folder));
+            if (cacheEntry != '') {
+              //Add the cache entries to the new entries
+              FileListing newEntries = FileListing.fromJson(
+                jsonDecode(cacheEntry),
+              );
+              entries.fileEntries.addAll(newEntries.fileEntries);
+              //Add to the cache
+              String newStr = jsonEncode(entries.toJson());
+              final List<int> codeUnits = newStr.codeUnits;
+              final Uint8List bytes = Uint8List.fromList(codeUnits);
+              cache.set(folder, bytes, timeoutSecs);
+            } else {
+              final List<int> codeUnits = contents.codeUnits;
+              final Uint8List bytes = Uint8List.fromList(codeUnits);
+              cache.set(folder, bytes, timeoutSecs);
+            }
+            if (json['has_more']) {
+              cursor = json['cursor'];
+              //Need to recursively call continue url and add to list
+              // print("Recursive call");
+              listFolder(
+                oauthToken: oauthToken,
+                folder: folder,
+                callback: callback,
+                timeoutSecs: timeoutSecs,
+                cursor: cursor,
+                maxResults: maxResults,
+              );
+            } else {
+              callback(entries);
+            }
+          });
     } on HttpException catch (he) {
       print("Got HttpException during search: ${he.toString()}");
     }

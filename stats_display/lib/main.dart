@@ -144,7 +144,7 @@ class SystemListScreen extends ConsumerWidget {
               child: Text('Drawer Header'),
             ),
             ListTile(
-              title: const Text('Power Controller'),
+              title: const Text('PI Cluster Controller'),
               onTap: () {
                 // Navigate to Power controller screen.
                 Navigator.push(

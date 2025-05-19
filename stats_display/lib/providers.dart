@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
+import 'package:dart_ping/dart_ping.dart';
+import 'package:dartssh2/dartssh2.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:http/http.dart' as http;
-import 'package:dart_ping/dart_ping.dart';
 
 import 'dropbox-api.dart';
 
@@ -252,6 +254,7 @@ class RelayStatus {
 
   RelayStatus copyWith({
     bool? localLan,
+    bool? getInProgress,
     List<bool>? actualRelayStates,
     List<bool>? requestedRelayStates,
     DateTime? updateTime,
@@ -278,6 +281,9 @@ class RelayStatus {
     }
     if (localLan != null) {
       onLocalLan = localLan;
+    }
+    if (getInProgress != null) {
+      localGetInProgress = getInProgress;
     }
     if (updateTime != null) {
       lastUpdateTime = updateTime;
@@ -337,6 +343,8 @@ class RelayStatusNotifier extends _$RelayStatusNotifier {
   final String relayCommandFile = "relay_command.txt";
   final String localRelayStatusFile =
       "/home/danny/control_station/relay_status.txt";
+  final String turnClusterOnSrc = "/home/danny/agent/cluster_on.txt";
+  final String turnClusterOff = "bash /home/danny/agent/stopCluster.sh";
 
   @override
   RelayStatus build() {
@@ -358,6 +366,86 @@ class RelayStatusNotifier extends _$RelayStatusNotifier {
     state = state.setRelayState(relayIndex: index, state: reqState);
     //Send command to control station
     sendRelayCommandToHost(index: index, reqState: reqState);
+  }
+
+  void clusterOn(BuildContext context) {
+    runSSHCommand(
+      context,
+      "Turn Cluster On",
+      "cp $turnClusterOnSrc /home/danny/control_station/$relayCommandFile",
+    );
+  }
+
+  void clusterOff(BuildContext context) {
+    runSSHCommand(context, "Turn Cluster Off", turnClusterOff);
+  }
+
+  Future<void> runSSHCommand(
+    BuildContext context,
+    String question,
+    String command,
+  ) async {
+    final confirmed = await _showConfirmationDialog(
+      context,
+      question,
+      'Are you sure you want to do this?',
+    );
+
+    if (!confirmed) return;
+
+    LocalSendReceive.runSSHCommand(command)
+        .then((value) {
+          if (value == null) {
+            _showError(context, "Failed to run command");
+          } else {
+            _showMessage(context, value);
+          }
+        })
+        .catchError((error) {
+          _showError(context, error.toString());
+        });
+  }
+
+  Future<bool> _showConfirmationDialog(
+    BuildContext context,
+    String title,
+    String message,
+  ) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    ).then((value) => value ?? false);
+  }
+
+  void _showMessage(BuildContext context, String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), duration: Duration(seconds: 10)),
+    );
+  }
+
+  void _showError(BuildContext context, String error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 10),
+      ),
+    );
   }
 
   void sendRelayCommandToHost({
@@ -402,10 +490,10 @@ class RelayStatusNotifier extends _$RelayStatusNotifier {
       Future<Map<String, String>> localReceive = LocalSendReceive.getLocalFile([
         localRelayStatusFile,
       ]);
-      state.localGetInProgress = true;
+      state = state.copyWith(getInProgress: true);
       localReceive.then((files) {
         bool success = false;
-        state.localGetInProgress = false;
+        state = state.copyWith(getInProgress: false);
         if (files.containsKey(localRelayStatusFile)) {
           String? statusStr = files[localRelayStatusFile];
           if (statusStr != null) {
