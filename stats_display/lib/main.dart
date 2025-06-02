@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -115,8 +116,12 @@ class SystemListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final systemsAsync = ref.watch(systemListProvider);
+    final dateTime = ref.watch(formattedDateTimeProvider);
     return Scaffold(
-      appBar: AppBar(title: Text('Systems Status Overview'), toolbarHeight: 35),
+      appBar: AppBar(
+        title: Text('Systems Status $dateTime'),
+        toolbarHeight: 35,
+      ),
       body: systemsAsync.when(
         data:
             (systems) => ListView.builder(

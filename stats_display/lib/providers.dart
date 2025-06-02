@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
+import 'package:intl/intl.dart';
 
 import 'package:http/http.dart' as http;
-import 'package:dart_ping/dart_ping.dart';
-import 'package:dartssh2/dartssh2.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -42,6 +41,33 @@ Color temperatureColor(value) {
           ? Colors.orange
           : (value > 40 ? Colors.amberAccent : Colors.blue));
 }
+
+class DateTimeNotifier extends StateNotifier<String> {
+  late final Timer _timer;
+
+  DateTimeNotifier() : super(_formattedNow()) {
+    // Start a timer that updates the state every second
+    _timer = Timer.periodic(Duration(seconds: 1), (_) {
+      state = _formattedNow();
+    });
+  }
+
+  static String _formattedNow() {
+    return DateFormat('HH:mm:ss').format(DateTime.now());
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+}
+
+// Provider
+final formattedDateTimeProvider =
+    StateNotifierProvider<DateTimeNotifier, String>((ref) {
+      return DateTimeNotifier();
+    });
 
 final systemListProvider = FutureProvider<List<(String, String)>>((ref) async {
   String oauthToken = "BLANK";

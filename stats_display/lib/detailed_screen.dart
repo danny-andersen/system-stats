@@ -16,14 +16,15 @@ class SystemInfoScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncSystemData = ref.watch(systemDetailNotifierProvider(systemUrl));
+    final dateTime = ref.watch(formattedDateTimeProvider);
+
     // final screenSize = MediaQuery.of(context).size;
     final graphHeightByValue = 45.0;
 
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 35,
-        title: Text('$systemName Monitor', style: TextStyle(fontSize: 15)),
-
+        title: Text('$systemName $dateTime', style: TextStyle(fontSize: 15)),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed:
