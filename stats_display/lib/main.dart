@@ -57,6 +57,8 @@ class SystemMonitorApp extends ConsumerWidget {
 }
 
 class SystemListScreen extends ConsumerWidget {
+  final ScrollController _scrollController = ScrollController();
+
   Future<void> _shutdownSystem(BuildContext context) async {
     // Get hostname
     final hostnameResult = await Process.run('hostname', []);
@@ -70,13 +72,6 @@ class SystemListScreen extends ConsumerWidget {
       return;
     }
 
-    // // Run shutdown
-    // final result = await Process.run('sudo shutdown', [
-    //   '-h',
-    //   'now',
-    //   '--no-wall',
-    // ]);
-
     final shell = Shell();
 
     try {
@@ -84,16 +79,6 @@ class SystemListScreen extends ConsumerWidget {
     } catch (e) {
       _showError(context, 'Shutdown failed: $e');
     }
-    //   if (result.exitCode == 0) {
-    //     print('Shutdown command executed successfully');
-    //   } else {
-    //     print('Shutdown failed: ${result.stderr}');
-    //     _showError(context, result.stderr.toString());
-    //   }
-    // } catch (e) {
-    //   print('Error: $e');
-    //   _showError(context, e.toString());
-    // }
   }
 
   void _showError(BuildContext context, String error) {
@@ -124,18 +109,24 @@ class SystemListScreen extends ConsumerWidget {
       ),
       body: systemsAsync.when(
         data:
-            (systems) => ListView.builder(
-              itemCount: systems.length,
-              itemBuilder: (context, index) {
-                final (systemName, systemUrl) = systems[index];
-                return ProviderScope(
-                  overrides: [_localSystemUrl.overrideWithValue(systemUrl)],
-                  child: SystemListTile(
-                    systemName: systemName,
-                    systemUrl: systemUrl,
-                  ),
-                );
-              },
+            (systems) => Scrollbar(
+              controller: _scrollController,
+              thumbVisibility: true,
+              thickness: 20,
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: systems.length,
+                itemBuilder: (context, index) {
+                  final (systemName, systemUrl) = systems[index];
+                  return ProviderScope(
+                    overrides: [_localSystemUrl.overrideWithValue(systemUrl)],
+                    child: SystemListTile(
+                      systemName: systemName,
+                      systemUrl: systemUrl,
+                    ),
+                  );
+                },
+              ),
             ),
         loading: () => Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Failed to load systems: $err')),
