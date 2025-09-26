@@ -72,19 +72,22 @@ final formattedDateTimeProvider =
 final systemListProvider = FutureProvider<List<(String, String)>>((ref) async {
   String oauthToken = "BLANK";
 
-  Future<Secret> secret =
-      SecretLoader(secretPath: "assets/api-key.json").load();
-  secret.then((Secret secret) {
-    LocalSendReceive.username = secret.username;
-    LocalSendReceive.passphrase = secret.password;
-    LocalSendReceive.host = secret.controlHost;
-    Future<String> keyString = rootBundle.loadString('assets/connect-data');
-    keyString.then((String str) {
-      LocalSendReceive.setKeys(str);
-    });
-    oauthToken = secret.apiKey;
-    DropBoxAPIFn.globalOauthToken = oauthToken;
-  });
+  final secret = await rootBundle.loadStructuredData<Secret>(
+    'assets/api-key.json',
+    (jsonStr) async {
+      final secret = Secret.fromJson(jsonDecode(jsonStr));
+      return secret;
+    },
+  );
+  LocalSendReceive.username = secret.username;
+  LocalSendReceive.passphrase = secret.password;
+  LocalSendReceive.host = secret.controlHost;
+  oauthToken = secret.apiKey;
+  DropBoxAPIFn.globalOauthToken = oauthToken;
+  // });
+
+  final keyString = await rootBundle.loadString('assets/connect-data');
+  LocalSendReceive.setKeys(keyString);
 
   final jsonString = await rootBundle.loadString('assets/systems.json');
   final List<dynamic> data = json.decode(jsonString);
@@ -98,18 +101,6 @@ final systemListProvider = FutureProvider<List<(String, String)>>((ref) async {
   }
   return systems;
 });
-
-class SecretLoader {
-  final String? secretPath;
-
-  SecretLoader({this.secretPath});
-  Future<Secret> load() {
-    return rootBundle.loadStructuredData<Secret>(secretPath!, (jsonStr) async {
-      final secret = Secret.fromJson(jsonDecode(jsonStr));
-      return secret;
-    });
-  }
-}
 
 class Secret {
   final String apiKey;
