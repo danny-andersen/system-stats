@@ -233,3 +233,6 @@ stats_display/windows/flutter/generated_plugins.cmake
 stats_display/windows/flutter/generated_plugin_registrant.h
 stats_display/windows/flutter/generated_plugin_registrant.cc
 stats_display/macos/Flutter/GeneratedPluginRegistrant.swift
+stats_display/.vscode/settings.json
+stats_display/pubspec.lock
+stats_display/pubspec.lock
