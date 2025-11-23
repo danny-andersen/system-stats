@@ -236,3 +236,4 @@ stats_display/macos/Flutter/GeneratedPluginRegistrant.swift
 stats_display/.vscode/settings.json
 stats_display/pubspec.lock
 stats_display/pubspec.lock
+stats_display/pi-lcd-build.sh
