@@ -19,7 +19,7 @@ class SystemInfoScreen extends ConsumerWidget {
     final dateTime = ref.watch(formattedDateTimeProvider);
 
     // final screenSize = MediaQuery.of(context).size;
-    final graphHeightByValue = 45.0;
+    final graphHeightByValue = 80.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -114,7 +114,7 @@ class SystemInfoScreen extends ConsumerWidget {
                           'GPU Memory: ${((data["gpu"][0]["memory_total_MB"]) / 1024.0).toStringAsPrecision(2)} GB',
                         ),
                         Text(
-                          'Used: ${((data["gpu"][0]["memory_used_MB"]) / 1024.0).toStringAsPrecision(2)} GB',
+                          'Used: ${((data["gpu"][0]["memory_used_MB"]) / 1024.0).toStringAsPrecision(3)} GB',
                         ),
                       ],
                     )
@@ -122,13 +122,13 @@ class SystemInfoScreen extends ConsumerWidget {
                 Row(
                   spacing: 5.0,
                   children: [
-                    Text('Main Disk: ${data["disk"]["total_gb"]} GB'),
-                    Text('Used: ${data["disk"]["used_gb"]} GB'),
-                    Text('Free: ${data["disk"]["free_gb"]} GB'),
+                    Text('Main Disk: ${(data["disk"]["total_gb"]).toStringAsFixed(1)} GB'),
+                    Text('Used: ${(data["disk"]["used_gb"]).toStringAsFixed(1)} GB'),
+                    Text('Free: ${(data["disk"]["free_gb"]).toStringAsFixed(1)} GB'),
                   ],
                 ),
                 SizedBox(height: 5),
-                Text('Uptime: ${data["uptime"]}'),
+                Text('Uptime: ${data["uptime"].split('.')[0]}'),
                 Text('Last Boot: ${data["boot_time"]}'),
               ]),
             ],

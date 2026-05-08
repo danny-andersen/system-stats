@@ -150,6 +150,8 @@ def getTemps():
                         temp["vrm"] = sensor.Value
                     if sensor.Name == "Temperature #6":
                         temp["vso"] = sensor.Value
+        #     for sensor in hardware.Sensors:
+        #         print("\tSensor: {0}, value: {1}", sensor.Name, sensor.Value)
         if "Samsung SSD 990" in hardware.Name:
             for sensor in hardware.Sensors:
                 if sensor.Name == "Temperature":
@@ -175,6 +177,7 @@ if __name__ == "__main__":
         nvmlInit()
         gpustat.GPUStatCollection.new_query()
         gpuAvailable = True
+        # print("GPU available")
     except Exception as e:
         print(f"Error initializing NVML: {e}")
         gpuAvailable = False

@@ -175,9 +175,9 @@ class SystemListTile extends ConsumerWidget {
 
     return asyncData.when(
       data: (data) {
-        final cpuUsage = data["cpu"]["usage_percent"];
-        final cpuTemp = data["temperature"]["cpu"];
-        final memoryUsage = data["memory"]["usage_percent"];
+        final cpuUsage = data["cpu"]["usage_percent"] ?? -1;
+        final cpuTemp = data["temperature"]["cpu"] ?? -1;
+        final memoryUsage = data["memory"]["usage_percent"] ?? -1;
         final swapUsage =
             data.containsKey("swap") ? data["swap"]["usage_percent"] : 0;
         final gpuUsage =
