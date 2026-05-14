@@ -19,7 +19,7 @@ class SystemInfoScreen extends ConsumerWidget {
     final dateTime = ref.watch(formattedDateTimeProvider);
 
     // final screenSize = MediaQuery.of(context).size;
-    final graphHeightByValue = 80.0;
+    final graphHeightByValue = 40.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -63,7 +63,7 @@ class SystemInfoScreen extends ConsumerWidget {
             tempLabels.insert(0, 'gpu');
           }
           double tempGraphHeight =
-              data["temperature"].length * graphHeightByValue;
+              data["temperature"].length * graphHeightByValue * 1.5;
 
           return ListView(
             children: [
@@ -122,9 +122,15 @@ class SystemInfoScreen extends ConsumerWidget {
                 Row(
                   spacing: 5.0,
                   children: [
-                    Text('Main Disk: ${(data["disk"]["total_gb"]).toStringAsFixed(1)} GB'),
-                    Text('Used: ${(data["disk"]["used_gb"]).toStringAsFixed(1)} GB'),
-                    Text('Free: ${(data["disk"]["free_gb"]).toStringAsFixed(1)} GB'),
+                    Text(
+                      'Main Disk: ${(data["disk"]["total_gb"]).toStringAsFixed(1)} GB',
+                    ),
+                    Text(
+                      'Used: ${(data["disk"]["used_gb"]).toStringAsFixed(1)} GB',
+                    ),
+                    Text(
+                      'Free: ${(data["disk"]["free_gb"]).toStringAsFixed(1)} GB',
+                    ),
                   ],
                 ),
                 SizedBox(height: 5),
